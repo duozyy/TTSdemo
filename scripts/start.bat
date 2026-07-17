@@ -1,11 +1,16 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:: Set working directory to the folder containing this script
+cd /d "%~dp0"
+
 title TTS Demo - Offline TTS Engine Comparison
 
 echo ============================================
 echo    TTS Offline Engine Comparison Web Demo
 echo ============================================
+echo.
+echo Working directory: %CD%
 echo.
 
 :: ==================== Python Check ====================
@@ -44,9 +49,9 @@ if /i not "!INSTALL_PYTHON!"=="Y" (
     exit /b 1
 )
 
-:: Download Python 3.12
+:: Download Python 3.12 to local folder (same as run.bat)
 set "PYTHON_URL=https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe"
-set "PYTHON_INSTALLER=%TEMP%\python-3.12.4-amd64.exe"
+set "PYTHON_INSTALLER=%CD%\python-3.12.4-amd64.exe"
 
 echo.
 echo [1/4] Downloading Python 3.12.4...
@@ -54,6 +59,8 @@ echo     Source: !PYTHON_URL!
 echo     Target: !PYTHON_INSTALLER!
 echo     (About 25MB, may take 1-3 minutes depending on your network...)
 echo.
+
+:: Download using PowerShell (save to local folder)
 powershell -Command "(New-Object Net.WebClient).DownloadFile('!PYTHON_URL!', '!PYTHON_INSTALLER!')"
 if not exist "!PYTHON_INSTALLER!" (
     echo.
@@ -65,7 +72,7 @@ if not exist "!PYTHON_INSTALLER!" (
 )
 echo [OK] Download complete
 
-:: Silent install Python
+:: Silent install Python (install to LOCALAPPDATA to avoid admin rights)
 echo.
 echo [2/4] Installing Python 3.12...
 echo     (Silent install, may take 1-2 minutes...)
@@ -125,11 +132,16 @@ call venv\Scripts\activate.bat
 echo.
 echo [2/3] Installing dependencies (this may take 3-10 minutes)...
 echo.
-pip install -r requirements.txt
-if %ERRORLEVEL! NEQ 0 (
+
+:: Use local folder for pip cache and downloads (avoids permission issues)
+set "PIP_CACHE_DIR=%CD%\.pip_cache"
+set "PIP_TARGET=%CD%\.pip_packages"
+
+pip install --cache-dir="%PIP_CACHE_DIR%" -r requirements.txt
+if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [WARN] Some dependencies failed, trying individual install...
-    pip install flask numpy scipy sherpa-onnx edge-tts pyttsx3 ChatTTS
+    pip install --cache-dir="%PIP_CACHE_DIR%" flask numpy scipy sherpa-onnx edge-tts pyttsx3 ChatTTS
 )
 
 :: ==================== Model Check =======================
