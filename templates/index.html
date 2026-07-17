@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTS 离线引擎对比 Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #1a1a1a; }
+
+/* ===== Header ===== */
+.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem 2rem; }
+.header h1 { font-size: 1.5rem; font-weight: 600; }
+.header p { opacity: .9; font-size: .9rem; margin-top: .25rem; }
+.tabs { display: flex; gap: .5rem; margin-top: 1rem; }
+.tab { padding: .4rem 1rem; border-radius: 20px; background: rgba(255,255,255,.15); border: none; color: white; cursor: pointer; font-size: .8rem; }
+.tab.active { background: white; color: #667eea; font-weight: 600; }
+
+/* ===== Layout ===== */
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ===== Cards ===== */
+.card { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 1.5rem; }
+.card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+
+/* ===== Engine Grid ===== */
+.engine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+.engine-card { background: white; border-radius: 10px; padding: 1rem; border: 2px solid #e8ecf0; cursor: pointer; transition: all .2s; }
+.engine-card:hover { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,.15); }
+.engine-card.selected { border-color: #667eea; background: #f0f3ff; }
+.engine-card .icon { font-size: 2rem; margin-bottom: .5rem; }
+.engine-card h4 { font-size: .95rem; margin-bottom: .25rem; }
+.engine-card p { font-size: .8rem; color: #666; }
+.engine-card .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: .5rem; }
+.tag { font-size: .7rem; padding: 2px 6px; border-radius: 4px; background: #e8f4fd; color: #1890ff; }
+.tag.warn { background: #fff7e6; color: #fa8c16; }
+.tag.ok { background: #f6ffed; color: #52c41a; }
+
+/* ===== Form ===== */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: .85rem; font-weight: 500; margin-bottom: .4rem; color: #555; }
+.form-group textarea { width: 100%; padding: .6rem; border: 1px solid #d9d9d9; border-radius: 8px; font-size: .9rem; resize: vertical; min-height: 80px; }
+.form-group textarea:focus { outline: none; border-color: #667eea; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+.form-group select, .form-group input[type="number"], .form-group input[type="text"] { width: 100%; padding: .5rem; border: 1px solid #d9d9d9; border-radius: 8px; font-size: .85rem; }
+.form-group input[type="range"] { width: 100%; }
+.range-val { font-size: .8rem; color: #667eea; font-weight: 600; }
+
+/* ===== Buttons ===== */
+.btn { padding: .6rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: .9rem; font-weight: 500; }
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5a6fd6; }
+.btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+.btn-secondary { background: #f0f0f0; color: #333; }
+.btn-sm { padding: .35rem .8rem; font-size: .8rem; }
+
+/* ===== Audio Card ===== */
+.audio-card { display: flex; align-items: center; gap: 1rem; padding: .8rem; background: #fafafa; border-radius: 8px; margin-bottom: .5rem; }
+.audio-card .info { flex: 1; }
+.audio-card .engine-name { font-weight: 600; font-size: .9rem; }
+.audio-card .meta { font-size: .75rem; color: #888; margin-top: 2px; }
+.audio-card audio { width: 200px; height: 32px; }
+.audio-card .badge { font-size: .7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge-fast { background: #f6ffed; color: #52c41a; }
+.badge-slow { background: #fff7e6; color: #fa8c16; }
+
+/* ===== Compare Table ===== */
+.compare-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.compare-table th, .compare-table td { padding: .6rem; text-align: left; border-bottom: 1px solid #f0f0f0; }
+.compare-table th { background: #fafafa; font-weight: 600; }
+
+/* ===== Android Banner ===== */
+.android-banner { background: linear-gradient(135deg, "#1a73e8", "#0d47a1"); color: white; border-radius: 12px; padding: 1.5rem; }
+.android-banner h3 { font-size: 1.1rem; margin-bottom: .5rem; }
+.android-banner pre { background: rgba(0,0,0,.2); padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: .8rem; margin-top: .8rem; }
+
+/* ===== Loading ===== */
+.loading { display: none; text-align: center; padding: 2rem; }
+.loading.show { display: block; }
+.spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #f0f0f0; border-top-color: #667eea; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== Toast ===== */
+.toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: .8rem 1.2rem; border-radius: 8px; font-size: .85rem; opacity: 0; transition: opacity .3s; z-index: 1000; }
+.toast.show { opacity: 1; }
+.toast.err { background: #f5222d; }
+.toast.ok { background: #52c41a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🚀 TTS 离线引擎对比 Demo</h1>
+  <p>离线 · 中文 · 语调/语速可调 · Android APK 可集成</p>
+  <div class="tabs">
+    <button class="tab active" data-tab="demo">🎙️ 合成测试</button>
+    <button class="tab" data-tab="batch">📊 批量对比</button>
+    <button class="tab" data-tab="android">📱 Android 集成</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ========== 合成测试 ========== -->
+  <div class="section active" id="sec-demo">
+    <div class="card">
+      <div class="card-title">选择引擎</div>
+      <div class="engine-grid" id="engineGrid"></div>
+    </div>
+
+    <div class="card" id="paramsCard" style="display:none">
+      <div class="card-title" id="paramsTitle">参数配置</div>
+      <div class="form-group">
+        <label>输入文本（中文/英文混合）</label>
+        <textarea id="inputText" placeholder="试试输入：欢迎来到健康报告播报系统，今天我为您服务。">欢迎来到健康报告播报系统，您的血压正常，心率保持在每分钟72次左右，身体状况良好。</textarea>
+      </div>
+      <div id="engineParams"></div>
+      <button class="btn btn-primary" id="btnGenerate" onclick="generate()">🔊 立即合成</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="margin-top:1rem; color:#888;">合成中...</p>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none">
+      <div class="card-title">合成结果</div>
+      <div id="audioList"></div>
+    </div>
+  </div>
+
+  <!-- ========== 批量对比 ========== -->
+  <div class="section" id="sec-batch">
+    <div class="card">
+      <div class="card-title">批量引擎对比</div>
+      <div class="form-group">
+        <label>输入文本</label>
+        <textarea id="batchText">根据您最近的体检数据，总胆固醇水平略高于正常范围，建议控制饮食并加强运动。</textarea>
+      </div>
+      <div id="batchEngines"></div>
+      <button class="btn btn-primary" onclick="batchGenerate()" style="margin-top:1rem;">🚀 一键合成全部</button>
+    </div>
+
+    <div class="loading" id="batchLoading">
+      <div class="spinner"></div>
+      <p style="margin-top:1rem; color:#888;">批量合成中...</p>
+    </div>
+
+    <div class="card" id="batchResult" style="display:none">
+      <div class="card-title">对比结果</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>引擎</th><th>耗时</th><th>大小</th><th>操作</th></tr>
+        </thead>
+        <tbody id="batchBody"></tbody>
+      </table>
+      <div id="batchAudios" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- ========== Android 集成 ========== -->
+  <div class="section" id="sec-android">
+    <div class="android-banner">
+      <h3>📱 Android 端集成方案</h3>
+      <p>首选 <strong>Sherpa-ONNX + Kokoro</strong>，通过 AAR 直集成到 APK。</p>
+      <pre id="androidCode">// Android Kotlin 示例
+val config = OfflineTtsConfig(
+    model = OfflineTtsModelConfig(
+        kokoro = OfflineTtsKokoroModelConfig(
+            model = "$filesDir/kokoro/model.int8.onnx",
+            voices = "$filesDir/kokoro/voices.bin",
+            tokens = "$filesDir/kokoro/tokens.txt",
+            dataDir = "$filesDir/kokoro/espeak-ng-data",
+            lexicon = "$filesDir/kokoro/lexicon-us-en.txt,$filesDir/kokoro/lexicon-zh.txt"
+        )
+    )
+)
+val tts = OfflineTts(config)
+val audio = tts.generate("你好", sid = 3, speed = 1.0)
+// audio.samples: FloatArray
+// audio.sampleRate: Int</pre>
+    </div>
+
+    <div class="card" style="margin-top:1.5rem;">
+      <div class="card-title">引擎对比</div>
+      <table class="compare-table">
+        <thead><tr><th>引擎</th><th>语言</th><th>许可</th><th>模型大小</th><th>集成方式</th></tr></thead>
+        <tbody>
+          <tr><td><b>Sherpa-ONNX</b></td><td>C++</td><td>Apache-2.0</td><td>160 MB</td><td>AAR 直集成</td></tr>
+          <tr><td><b>Maise</b></td><td>Kotlin</td><td>MIT</td><td>160 MB</td><td>系统级 TTS 服务</td></tr>
+          <tr><td>ChatTTS</td><td>Python</td><td>AGPL-3.0</td><td>1 GB</td><td>需转 ONNX/TFLite</td></tr>
+          <tr><td>Edge-TTS</td><td>-</td><td>-</td><td>-</td><td>不可用（在线）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== State =====
+let engines = [];
+let selectedEngine = null;
+let voicesCache = {};
+
+// ===== Tabs =====
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+// ===== Load Models =====
+async function loadModels() {
+  const res = await fetch('/api/models');
+  const data = await res.json();
+  engines = data.engines;
+  renderEngineGrid();
+  renderBatchEngines();
+}
+
+function renderEngineGrid() {
+  const grid = document.getElementById('engineGrid');
+  grid.innerHTML = engines.map(e => `
+    <div class="engine-card" data-id="${e.id}" onclick="selectEngine('${e.id}')">
+      <div class="icon">${getIcon(e.id)}</div>
+      <h4>${e.name}</h4>
+      <p>${e.desc}</p>
+      <div class="tags">
+        ${e.offline ? '<span class="tag ok">离线</span>' : '<span class="tag warn">在线</span>'}
+        <span class="tag">${e.size_mb}MB</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getIcon(id) {
+  const map = { sherpa_vits: '🧠', sherpa_kokoro: '🧠', chattts: '💬', edge: '🌐', pyttsx3: '💻' };
+  return map[id] || '🔊';
+}
+
+// ===== Select Engine =====
+async function selectEngine(id) {
+  selectedEngine = engines.find(e => e.id === id);
+  document.querySelectorAll('.engine-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.engine-card[data-id="${id}"]`).classList.add('selected');
+  document.getElementById('paramsCard').style.display = 'block';
+  document.getElementById('paramsTitle').textContent = '参数配置 — ' + selectedEngine.name;
+  await renderParams(id);
+}
+
+async function renderParams(id) {
+  const box = document.getElementById('engineParams');
+  let html = '';
+
+  if (id === 'sherpa_vits') {
+    html += `
+      <div class="form-row">
+        <div class="form-group">
+          <label>语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
+          <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>语调随机性 (noise_scale): <span class="range-val" id="noiseVal">1.0</span></label>
+          <input type="range" id="p_noise_scale" min="0.1" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('noiseVal').textContent=this.value">
+        </div>
+      </div>`;
+  } else if (id === 'sherpa_kokoro') {
+    const voices = await getVoices('sherpa_kokoro');
+    html += `
+      <div class="form-row">
+        <div class="form-group">
+          <label>音色</label>
+          <select id="p_sid">
+            ${voices.filter(v=>v.lang==='zh').map(v=>`<option value="${v.sid}">#${v.sid} ${v.name} (${v.gender})</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>语速: <span class="range-val" id="speedVal">1.0</span></label>
+          <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
+        </div>
+      </div>`;
+  } else if (id === 'chattts') {
+    html += `
+      <div class="form-row">
+        <div class="form-group">
+          <label>音色 Seed: <span class="range-val" id="seedVal">1234</span></label>
+          <input type="range" id="p_seed" min="0" max="99999" step="1" value="1234" oninput="document.getElementById('seedVal').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>语速: <span class="range-val" id="speedVal">1.0</span></label>
+          <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>韵律 Prompt</label>
+        <select id="p_prompt">
+          <option value="[oral_0][laugh_0][break_3]">标准 (oral_0)</option>
+          <option value="[oral_2][laugh_0][break_3]">口语化 (oral_2)</option>
+          <option value="[oral_0][laugh_2][break_3]">带笑声 (laugh_2)</option>
+          <option value="[oral_6][laugh_0][break_0]">播音腔 (oral_6, no break)</option>
+        </select>
+      </div>`;
+  } else if (id === 'edge') {
+    const voices = await getVoices('edge');
+    html += `
+      <div class="form-row">
+        <div class="form-group">
+          <label>音色</label>
+          <select id="p_voice">${voices.map(v=>`<option value="${v.id}">${v.name}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label>语速</label>
+          <select id="p_rate">
+            <option value="-20%">极慢</option>
+            <option value="-10%">慢</option>
+            <option value="+0%" selected>正常</option>
+            <option value="+10%">快</option>
+            <option value="+20%">极快</option>
+          </select>
+        </div>
+      </div>`;
+  } else if (id === 'pyttsx3') {
+    html += `
+      <div class="form-row">
+        <div class="form-group">
+          <label>语速: <span class="range-val" id="rateVal">150</span></label>
+          <input type="range" id="p_rate" min="80" max="300" step="10" value="150" oninput="document.getElementById('rateVal').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>音量: <span class="range-val" id="volVal">0.9</span></label>
+          <input type="range" id="p_volume" min="0" max="1" step="0.1" value="0.9" oninput="document.getElementById('volVal').textContent=this.value">
+        </div>
+      </div>`;
+  }
+  box.innerHTML = html;
+}
+
+async function getVoices(engine) {
+  if (voicesCache[engine]) return voicesCache[engine];
+  const res = await fetch('/api/voices/' + engine);
+  const data = await res.json();
+  voicesCache[engine] = data.voices;
+  return data.voices;
+}
+
+// ===== Generate =====
+async function generate() {
+  if (!selectedEngine) return toast('请先选择引擎', 'err');
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return toast('请输入文本', 'err');
+
+  const params = collectParams(selectedEngine.id);
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('btnGenerate').disabled = true;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, engine: selectedEngine.id, params })
+    });
+    const data = await res.json();
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('btnGenerate').disabled = false;
+
+    if (!data.success) return toast(data.error, 'err');
+    showResult(selectedEngine.name, data);
+  } catch(e) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('btnGenerate').disabled = false;
+    toast(e.message, 'err');
+  }
+}
+
+function collectParams(id) {
+  const p = {};
+  if (id === 'sherpa_vits') {
+    p.speed = document.getElementById('p_speed').value;
+    p.noise_scale = document.getElementById('p_noise_scale').value;
+  } else if (id === 'sherpa_kokoro') {
+    p.sid = document.getElementById('p_sid').value;
+    p.speed = document.getElementById('p_speed').value;
+  } else if (id === 'chattts') {
+    p.seed = document.getElementById('p_seed').value;
+    p.speed = document.getElementById('p_speed').value;
+    p.prompt = document.getElementById('p_prompt').value;
+  } else if (id === 'edge') {
+    p.voice = document.getElementById('p_voice').value;
+    p.rate = document.getElementById('p_rate').value;
+    p.pitch = '+0Hz';
+  } else if (id === 'pyttsx3') {
+    p.rate = document.getElementById('p_rate').value;
+    p.volume = document.getElementById('p_volume').value;
+  }
+  return p;
+}
+
+function showResult(name, data) {
+  const card = document.getElementById('resultCard');
+  card.style.display = 'block';
+  const list = document.getElementById('audioList');
+  const badge = data.time < 2 ? 'badge-fast' : 'badge-slow';
+  const badgeText = data.time < 2 ? '极速' : '较慢';
+  list.innerHTML = `
+    <div class="audio-card">
+      <div class="info">
+        <div class="engine-name">${name}</div>
+        <div class="meta">${data.note || ''} · ${data.size_kb} KB</div>
+      </div>
+      <span class="badge ${badge}">${data.time}s · ${badgeText}</span>
+      <audio controls src="${data.audio_url}"></audio>
+    </div>
+  ` + list.innerHTML;
+}
+
+// ===== Batch =====
+function renderBatchEngines() {
+  const box = document.getElementById('batchEngines');
+  box.innerHTML = engines.map(e => `
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.85rem;">
+      <input type="checkbox" class="batch-check" value="${e.id}" checked>
+      ${getIcon(e.id)} ${e.name}
+    </label>
+  `).join('');
+}
+
+async function batchGenerate() {
+  const text = document.getElementById('batchText').value.trim();
+  if (!text) return toast('请输入文本', 'err');
+  const checked = [...document.querySelectorAll('.batch-check:checked')].map(c => c.value);
+  if (!checked.length) return toast('请至少选择一个引擎', 'err');
+
+  // Default params for each engine
+  const defaults = {
+    sherpa_vits: { speed: 1.0, noise_scale: 1.0 },
+    sherpa_kokoro: { speed: 1.0, sid: 3 },
+    chattts: { seed: 1234, speed: 1.0, prompt: '[oral_0][laugh_0][break_3]' },
+    edge: { voice: 'zh-CN-XiaoxiaoNeural', rate: '+0%', pitch: '+0Hz' },
+    pyttsx3: { rate: 150, volume: 0.9 }
+  };
+
+  document.getElementById('batchLoading').classList.add('show');
+  document.getElementById('batchResult').style.display = 'none';
+
+  const res = await fetch('/api/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, engines: checked.map(e => ({ engine: e, params: defaults[e] || {} })) })
+  });
+  const data = await res.json();
+  document.getElementById('batchLoading').classList.remove('show');
+  document.getElementById('batchResult').style.display = 'block';
+
+  const tbody = document.getElementById('batchBody');
+  tbody.innerHTML = '';
+  const audios = document.getElementById('batchAudios');
+  audios.innerHTML = '';
+
+  data.results.forEach(r => {
+    if (r.success) {
+      tbody.innerHTML += `<tr><td>${r.engine}</td><td>${r.time}s</td><td>${r.size_kb} KB</td><td><audio controls src="${r.audio_url}" style="height:28px;width:160px;"></audio></td></tr>`;
+    } else {
+      tbody.innerHTML += `<tr><td>${r.engine}</td><td colspan="3" style="color:#f5222d;">${r.error}</td></tr>`;
+    }
+  });
+}
+
+// ===== Toast =====
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ===== Init =====
+loadModels();
+</script>
+</body>
+</html>
