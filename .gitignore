@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -76,9 +77,14 @@ Thumbs.db
 # Project specific
 cache/
 output/
-*.wav
-*.mp3
+test_*.wav
+test_*.mp3
 
 # Model files (too large for Git)
 models/
 asset/
+
+# venv (should not be in repo)
+
+# Test outputs
+*.wav
