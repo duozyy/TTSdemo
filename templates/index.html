@@ -271,20 +271,49 @@ async function renderParams(id) {
           <label>语调随机性 (noise_scale): <span class="range-val" id="noiseVal">1.0</span></label>
           <input type="range" id="p_noise_scale" min="0.1" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('noiseVal').textContent=this.value">
         </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>音素时长随机性 (noise_scale_w): <span class="range-val" id="noiseWVal">0.8</span></label>
+          <input type="range" id="p_noise_scale_w" min="0.1" max="2.0" step="0.1" value="0.8" oninput="document.getElementById('noiseWVal').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
+          <input type="range" id="p_length_scale" min="0.5" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('lenVal').textContent=this.value">
+        </div>
       </div>`;
   } else if (id === 'sherpa_kokoro') {
     const voices = await getVoices('sherpa_kokoro');
+    kokoroAllVoices = voices;  // 保存全局引用
+    const zhVoices = voices.filter(v=>v.lang==='zh');
+    const enVoices = voices.filter(v=>v.lang.startsWith('en'));
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>音色</label>
-          <select id="p_sid">
-            ${voices.filter(v=>v.lang==='zh').map(v=>`<option value="${v.sid}">#${v.sid} ${v.name} (${v.gender})</option>`).join('')}
+          <label>音色筛选</label>
+          <select id="p_voice_filter" onchange="filterKokoroVoices()">
+            <option value="all">全部 (${voices.length})</option>
+            <option value="zh" selected>中文 (${zhVoices.length})</option>
+            <option value="en">英文 (${enVoices.length})</option>
+            <option value="female">女声 (${voices.filter(v=>v.gender==='女').length})</option>
+            <option value="male">男声 (${voices.filter(v=>v.gender==='男').length})</option>
           </select>
         </div>
         <div class="form-group">
-          <label>语速: <span class="range-val" id="speedVal">1.0</span></label>
+          <label>音色</label>
+          <select id="p_sid" class="kokoro-voices">
+            ${zhVoices.map(v=>`<option value="${v.sid}">#${v.sid} ${v.name} (${v.gender})</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
           <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
+          <input type="range" id="p_length_scale" min="0.5" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('lenVal').textContent=this.value">
         </div>
       </div>`;
   } else if (id === 'chattts') {
@@ -385,9 +414,12 @@ function collectParams(id) {
   if (id === 'sherpa_vits') {
     p.speed = document.getElementById('p_speed').value;
     p.noise_scale = document.getElementById('p_noise_scale').value;
+    p.noise_scale_w = document.getElementById('p_noise_scale_w').value;
+    p.length_scale = document.getElementById('p_length_scale').value;
   } else if (id === 'sherpa_kokoro') {
     p.sid = document.getElementById('p_sid').value;
     p.speed = document.getElementById('p_speed').value;
+    p.length_scale = document.getElementById('p_length_scale').value;
   } else if (id === 'chattts') {
     p.seed = document.getElementById('p_seed').value;
     p.speed = document.getElementById('p_speed').value;
@@ -440,8 +472,8 @@ async function batchGenerate() {
 
   // Default params for each engine
   const defaults = {
-    sherpa_vits: { speed: 1.0, noise_scale: 1.0 },
-    sherpa_kokoro: { speed: 1.0, sid: 3 },
+    sherpa_vits: { speed: 1.0, noise_scale: 0.667, noise_scale_w: 0.8, length_scale: 1.0 },
+    sherpa_kokoro: { speed: 1.0, sid: 3, length_scale: 1.0 },
     chattts: { seed: 1234, speed: 1.0, prompt: '[oral_0][laugh_0][break_3]' },
     edge: { voice: 'zh-CN-XiaoxiaoNeural', rate: '+0%', pitch: '+0Hz' },
     pyttsx3: { rate: 150, volume: 0.9 }
@@ -471,6 +503,19 @@ async function batchGenerate() {
       tbody.innerHTML += `<tr><td>${r.engine}</td><td colspan="3" style="color:#f5222d;">${r.error}</td></tr>`;
     }
   });
+}
+
+// ===== Kokoro Voice Filter =====
+let kokoroAllVoices = [];
+function filterKokoroVoices() {
+  const filter = document.getElementById('p_voice_filter').value;
+  const sel = document.getElementById('p_sid');
+  let filtered = kokoroAllVoices;
+  if (filter === 'zh') filtered = kokoroAllVoices.filter(v => v.lang === 'zh');
+  else if (filter === 'en') filtered = kokoroAllVoices.filter(v => v.lang.startsWith('en'));
+  else if (filter === 'female') filtered = kokoroAllVoices.filter(v => v.gender === '女');
+  else if (filter === 'male') filtered = kokoroAllVoices.filter(v => v.gender === '男');
+  sel.innerHTML = filtered.map(v => `<option value="${v.sid}">#${v.sid} ${v.name} (${v.gender})</option>`).join('');
 }
 
 // ===== Toast =====

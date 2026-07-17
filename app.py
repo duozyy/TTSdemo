@@ -87,9 +87,9 @@ class SherpaEngine:
     def __init__(self):
         self._cache = {}
 
-    def _get(self, key, noise_scale=1.0):
-        """懒加载，VITS 支持自定义 noise_scale 语调随机性"""
-        cache_key = f"{key}_{noise_scale}"
+    def _get(self, key, noise_scale=0.667, noise_scale_w=0.8, length_scale=1.0):
+        """懒加载，VITS 支持 noise_scale + noise_scale_w + length_scale；Kokoro 支持 length_scale"""
+        cache_key = f"{key}_{noise_scale}_{noise_scale_w}_{length_scale}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         if key == "vits":
@@ -100,7 +100,8 @@ class SherpaEngine:
                     tokens=str(VITS_MODEL_DIR / "tokens.txt"),
                     data_dir="",
                     noise_scale=noise_scale,
-                    length_scale=1.0,
+                    noise_scale_w=noise_scale_w,
+                    length_scale=length_scale,
                 )
             )
             fsts = [str(VITS_MODEL_DIR / "phone.fst"),
@@ -113,7 +114,8 @@ class SherpaEngine:
                     voices=str(KOKORO_MODEL_DIR / "voices.bin"),
                     tokens=str(KOKORO_MODEL_DIR / "tokens.txt"),
                     data_dir=str(KOKORO_MODEL_DIR / "espeak-ng-data"),
-                    lexicon=f"{KOKORO_MODEL_DIR / 'lexicon-us-en.txt'},{KOKORO_MODEL_DIR / 'lexicon-zh.txt'}"
+                    lexicon=f"{KOKORO_MODEL_DIR / 'lexicon-us-en.txt'},{KOKORO_MODEL_DIR / 'lexicon-zh.txt'}",
+                    length_scale=length_scale,
                 ),
                 num_threads=4
             )
@@ -129,9 +131,9 @@ class SherpaEngine:
         self._cache[cache_key] = tts
         return tts
 
-    def generate(self, text, model_key, speed=1.0, sid=0, noise_scale=1.0):
+    def generate(self, text, model_key, speed=1.0, sid=0, noise_scale=0.667, noise_scale_w=0.8, length_scale=1.0):
         t0 = time.time()
-        tts = self._get(model_key, noise_scale)
+        tts = self._get(model_key, noise_scale, noise_scale_w, length_scale)
         if tts is None:
             raise ValueError(f"未知模型: {model_key}")
         gen_cfg = sherpa_onnx.GenerationConfig()
@@ -257,8 +259,8 @@ def api_models():
                 "name": "Sherpa-ONNX · VITS",
                 "type": "offline",
                 "offline": True,
-                "desc": "轻量高速中文女声，122MB，响应快",
-                "pros": ["完全离线", "响应快", "语速/语调可调", "AAR 直集成"],
+                "desc": "轻量高速中文女声，122MB，语调/语速/时长全可调",
+                "pros": ["完全离线", "响应快", "语调/语速/时长全可调", "AAR 直集成", "4 个调节维度"],
                 "cons": ["单女声", "中英混合弱"],
                 "license": "Apache-2.0",
                 "size_mb": 122,
@@ -271,8 +273,8 @@ def api_models():
                 "name": "Sherpa-ONNX · Kokoro",
                 "type": "offline",
                 "offline": True,
-                "desc": "103 中英音色，160MB int8，流式输出",
-                "pros": ["完全离线", "103 音色", "中英混合", "语速可调", "AAR 直集成"],
+                "desc": "103 中英音色，160MB int8，语速/时长可调",
+                "pros": ["完全离线", "103 音色", "中英混合", "语速/时长可调", "AAR 直集成"],
                 "cons": ["首次推理略慢"],
                 "license": "Apache-2.0",
                 "size_mb": 160,
@@ -372,16 +374,19 @@ def api_generate():
     try:
         if engine == "sherpa_vits":
             speed = float(params.get('speed', 1.0))
-            noise_scale = float(params.get('noise_scale', 1.0))
+            noise_scale = float(params.get('noise_scale', 0.667))
+            noise_scale_w = float(params.get('noise_scale_w', 0.8))
+            length_scale = float(params.get('length_scale', 1.0))
             sid = int(params.get('sid', 0))
-            wav_data, elapsed = sherpa_engine.generate(text, 'vits', speed, sid, noise_scale)
-            note = f"speed={speed}, noise_scale={noise_scale}"
+            wav_data, elapsed = sherpa_engine.generate(text, 'vits', speed, sid, noise_scale, noise_scale_w, length_scale)
+            note = f"speed={speed}, noise_scale={noise_scale}, noise_scale_w={noise_scale_w}, length={length_scale}"
 
         elif engine == "sherpa_kokoro":
             speed = float(params.get('speed', 1.0))
             sid = int(params.get('sid', 3))
-            wav_data, elapsed = sherpa_engine.generate(text, 'kokoro', speed, sid)
-            note = f"speed={speed}, sid={sid}"
+            length_scale = float(params.get('length_scale', 1.0))
+            wav_data, elapsed = sherpa_engine.generate(text, 'kokoro', speed, sid, 1.0, 0.8, length_scale)
+            note = f"speed={speed}, sid={sid}, length={length_scale}"
 
         elif engine == "chattts":
             seed = int(params.get('seed', 1234))
@@ -473,13 +478,17 @@ def api_batch():
                     text, 'vits',
                     float(eng_params.get('speed', 1.0)),
                     int(eng_params.get('sid', 0)),
-                    float(eng_params.get('noise_scale', 1.0))
+                    float(eng_params.get('noise_scale', 0.667)),
+                    float(eng_params.get('noise_scale_w', 0.8)),
+                    float(eng_params.get('length_scale', 1.0))
                 )
             elif name == "sherpa_kokoro":
                 wav_data, elapsed = sherpa_engine.generate(
                     text, 'kokoro',
                     float(eng_params.get('speed', 1.0)),
-                    int(eng_params.get('sid', 3))
+                    int(eng_params.get('sid', 3)),
+                    1.0, 0.8,
+                    float(eng_params.get('length_scale', 1.0))
                 )
             elif name == "chattts":
                 wav_data, elapsed = chattts_engine.generate(
