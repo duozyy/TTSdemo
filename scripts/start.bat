@@ -1,6 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:: Force UTF-8 mode to avoid encoding issues with Chinese Windows
+set "PYTHONUTF8=1"
+
 :: Set working directory to the folder containing this script
 cd /d "%~dp0"
 

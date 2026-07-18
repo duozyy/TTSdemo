@@ -1,21 +1,18 @@
-# TTS Demo - Python 依赖
-# Python 3.10+ 推荐
+# TTS Demo - Python Dependencies
+# Requires Python 3.10+
 
-# Web 框架
+# Web framework
 Flask>=3.0.0
 
-# 离线 TTS 引擎
+# Offline TTS engine
 sherpa-onnx>=1.10.0
 
-# ChatTTS（可选，需要 GPU 或较强的 CPU）
-# chattts>=0.1.0
-
-# 音频处理
+# Audio processing
 numpy>=1.24.0
 scipy>=1.10.0
 
-# 在线 TTS 对比（可选）
+# Online TTS comparison (optional)
 edge-tts>=6.1.0
 
-# 系统级 TTS（可选）
+# System-level TTS (optional)
 pyttsx3>=2.90
