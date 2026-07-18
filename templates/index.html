@@ -8,11 +8,54 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #1a1a1a; }
 
+/* ===== Tooltip ===== */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: #2d3748;
+  color: white;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: all .15s ease;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  border: 6px solid transparent;
+  border-top-color: #2d3748;
+  pointer-events: none;
+  opacity: 0;
+  transition: all .15s ease;
+  z-index: 100;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
 /* ===== Header ===== */
 .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem 2rem; }
 .header h1 { font-size: 1.5rem; font-weight: 600; }
 .header p { opacity: .9; font-size: .9rem; margin-top: .25rem; }
-.tabs { display: flex; gap: .5rem; margin-top: 1rem; }
+.tabs { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
 .tab { padding: .4rem 1rem; border-radius: 20px; background: rgba(255,255,255,.15); border: none; color: white; cursor: pointer; font-size: .8rem; }
 .tab.active { background: white; color: #667eea; font-weight: 600; }
 
@@ -25,16 +68,46 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 1.5rem; }
 .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
 
-/* ===== Engine Grid ===== */
-.engine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.engine-card { background: white; border-radius: 10px; padding: 1rem; border: 2px solid #e8ecf0; cursor: pointer; transition: all .2s; }
+/* ===== Engine Carousel (横向卡片) ===== */
+.engine-scroll-wrapper {
+  position: relative;
+  margin: 0 -0.5rem;
+}
+.engine-scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: .5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c4c4 transparent;
+}
+.engine-scroll::-webkit-scrollbar { height: 6px; }
+.engine-scroll::-webkit-scrollbar-track { background: transparent; }
+engine-scroll::-webkit-scrollbar-thumb { background: #c4c4c4; border-radius: 3px; }
+
+.engine-card {
+  flex: 0 0 auto;
+  width: 180px;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 2px solid #e8ecf0;
+  cursor: pointer;
+  transition: all .2s;
+  scroll-snap-align: start;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .engine-card:hover { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,.15); }
+.engine-card:active { transform: scale(.97); }
 .engine-card.selected { border-color: #667eea; background: #f0f3ff; }
 .engine-card .icon { font-size: 2rem; margin-bottom: .5rem; }
-.engine-card h4 { font-size: .95rem; margin-bottom: .25rem; }
-.engine-card p { font-size: .8rem; color: #666; }
+.engine-card h4 { font-size: .9rem; margin-bottom: .25rem; line-height: 1.3; }
+.engine-card p { font-size: .75rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .engine-card .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: .5rem; }
-.tag { font-size: .7rem; padding: 2px 6px; border-radius: 4px; background: #e8f4fd; color: #1890ff; }
+.tag { font-size: .65rem; padding: 2px 6px; border-radius: 4px; background: #e8f4fd; color: #1890ff; }
 .tag.warn { background: #fff7e6; color: #fa8c16; }
 .tag.ok { background: #f6ffed; color: #52c41a; }
 
@@ -72,7 +145,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .compare-table th { background: #fafafa; font-weight: 600; }
 
 /* ===== Android Banner ===== */
-.android-banner { background: linear-gradient(135deg, "#1a73e8", "#0d47a1"); color: white; border-radius: 12px; padding: 1.5rem; }
+.android-banner { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; border-radius: 12px; padding: 1.5rem; }
 .android-banner h3 { font-size: 1.1rem; margin-bottom: .5rem; }
 .android-banner pre { background: rgba(0,0,0,.2); padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: .8rem; margin-top: .8rem; }
 
@@ -87,6 +160,88 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .toast.show { opacity: 1; }
 .toast.err { background: #f5222d; }
 .toast.ok { background: #52c41a; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .header { padding: 1.25rem 1rem; }
+  .header h1 { font-size: 1.25rem; }
+  .container { padding: 1rem; }
+  .card { padding: 1rem; }
+  .engine-card { width: 150px; padding: .8rem; }
+  .engine-card h4 { font-size: .8rem; }
+  .engine-card .icon { font-size: 1.5rem; }
+  .audio-card { flex-wrap: wrap; gap: .5rem; }
+  .audio-card audio { width: 100%; margin-top: .5rem; }
+  .form-row { grid-template-columns: 1fr; }
+  .compare-table { display: block; overflow-x: auto; }
+  .android-banner { padding: 1rem; }
+  .android-banner pre { font-size: .7rem; }
+  .tab { padding: .35rem .8rem; font-size: .75rem; }
+}
+
+@media (max-width: 480px) {
+  .header h1 { font-size: 1.1rem; }
+  .header p { font-size: .75rem; }
+  .tabs { gap: .3rem; }
+  .engine-card { width: 130px; }
+}
+
+@media (min-width: 1024px) {
+  .engine-scroll { flex-wrap: wrap; }
+}
+
+/* ===== Demo List Collapse ===== */
+.demo-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.demo-count {
+  font-size: 0.8rem;
+  color: #888;
+  background: #f0f0f0;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+.demo-list-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  padding: 0;
+}
+.btn-link:hover { color: #5a6fd6; }
+
+/* ===== File list ===== */
+.file-list-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #fafafa;
+  padding: 0.5rem;
+  scrollbar-width: thin;
+}
+.file-list-container::-webkit-scrollbar { width: 6px; }
+.file-list-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+/* ===== Select tooltip helper ===== */
+.select-tooltip {
+  position: relative;
+}
+.select-tooltip::after {
+  bottom: calc(100% + 12px);
+}
+.select-tooltip::before {
+  bottom: calc(100% + 6px);
+}
 </style>
 </head>
 <body>
@@ -106,8 +261,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   <!-- ========== 合成测试 ========== -->
   <div class="section active" id="sec-demo">
     <div class="card">
-      <div class="card-title">选择引擎</div>
-      <div class="engine-grid" id="engineGrid"></div>
+      <div class="card-title">← 滑动选择引擎 →</div>
+      <div class="engine-scroll-wrapper">
+        <div class="engine-scroll" id="engineGrid"></div>
+      </div>
     </div>
 
     <div class="card" id="paramsCard" style="display:none">
@@ -126,8 +283,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
 
     <div class="card" id="resultCard" style="display:none">
-      <div class="card-title">合成结果</div>
-      <div id="audioList"></div>
+      <div class="demo-list-header">
+        <div class="card-title" style="margin-bottom:0;">📂 语音演示文件 <span class="demo-count" id="demoCount">(0)</span></div>
+        <div class="demo-list-actions">
+          <button class="btn-link" onclick="clearDemos()">清空全部</button>
+        </div>
+      </div>
+      <div class="file-list-container" id="audioList"></div>
     </div>
   </div>
 
@@ -206,6 +368,7 @@ val audio = tts.generate("你好", sid = 3, speed = 1.0)
 let engines = [];
 let selectedEngine = null;
 let voicesCache = {};
+const MAX_DEMOS = 99;
 
 // ===== Tabs =====
 document.querySelectorAll('.tab').forEach(t => {
@@ -264,33 +427,33 @@ async function renderParams(id) {
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
+          <label data-tooltip="数值越大语速越快，推荐 0.8~1.2">语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
           <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
         </div>
         <div class="form-group">
-          <label>语调随机性 (noise_scale): <span class="range-val" id="noiseVal">1.0</span></label>
-          <input type="range" id="p_noise_scale" min="0.1" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('noiseVal').textContent=this.value">
+          <label data-tooltip="控制语调起伏，越大越夸张，越小越平淡">语调幅度 (noise_scale): <span class="range-val" id="noiseVal">0.667</span></label>
+          <input type="range" id="p_noise_scale" min="0.1" max="2.0" step="0.001" value="0.667" oninput="document.getElementById('noiseVal').textContent=this.value">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>音素时长随机性 (noise_scale_w): <span class="range-val" id="noiseWVal">0.8</span></label>
+          <label data-tooltip="控制每个字的停顿节奏，越大越慢越自然">节奏随机性 (noise_scale_w): <span class="range-val" id="noiseWVal">0.8</span></label>
           <input type="range" id="p_noise_scale_w" min="0.1" max="2.0" step="0.1" value="0.8" oninput="document.getElementById('noiseWVal').textContent=this.value">
         </div>
         <div class="form-group">
-          <label>时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
+          <label data-tooltip="整体时长缩放，>1 变慢，<1 变快">时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
           <input type="range" id="p_length_scale" min="0.5" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('lenVal').textContent=this.value">
         </div>
       </div>`;
   } else if (id === 'sherpa_kokoro') {
     const voices = await getVoices('sherpa_kokoro');
-    kokoroAllVoices = voices;  // 保存全局引用
+    kokoroAllVoices = voices;
     const zhVoices = voices.filter(v=>v.lang==='zh');
     const enVoices = voices.filter(v=>v.lang.startsWith('en'));
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>音色筛选</label>
+          <label data-tooltip="按语言或性别快速筛选音色">音色筛选</label>
           <select id="p_voice_filter" onchange="filterKokoroVoices()">
             <option value="all">全部 (${voices.length})</option>
             <option value="zh" selected>中文 (${zhVoices.length})</option>
@@ -300,7 +463,7 @@ async function renderParams(id) {
           </select>
         </div>
         <div class="form-group">
-          <label>音色</label>
+          <label data-tooltip="选择具体发音人，数字对应不同声音">音色 (Speaker ID)</label>
           <select id="p_sid" class="kokoro-voices">
             ${zhVoices.map(v=>`<option value="${v.sid}">#${v.sid} ${v.name} (${v.gender})</option>`).join('')}
           </select>
@@ -308,11 +471,11 @@ async function renderParams(id) {
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
+          <label data-tooltip="数值越大语速越快">语速 (speed): <span class="range-val" id="speedVal">1.0</span></label>
           <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
         </div>
         <div class="form-group">
-          <label>时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
+          <label data-tooltip=">1 整体变慢，<1 整体变快">时长缩放 (length_scale): <span class="range-val" id="lenVal">1.0</span></label>
           <input type="range" id="p_length_scale" min="0.5" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('lenVal').textContent=this.value">
         </div>
       </div>`;
@@ -320,16 +483,16 @@ async function renderParams(id) {
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>音色 Seed: <span class="range-val" id="seedVal">1234</span></label>
+          <label data-tooltip="不同 Seed 值生成完全不同的音色，试试 2025/boundary">音色 Seed: <span class="range-val" id="seedVal">1234</span></label>
           <input type="range" id="p_seed" min="0" max="99999" step="1" value="1234" oninput="document.getElementById('seedVal').textContent=this.value">
         </div>
         <div class="form-group">
-          <label>语速: <span class="range-val" id="speedVal">1.0</span></label>
+          <label data-tooltip="数值越大语速越快，推荐 0.8~1.2">语速: <span class="range-val" id="speedVal">1.0</span></label>
           <input type="range" id="p_speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').textContent=this.value">
         </div>
       </div>
       <div class="form-group">
-        <label>韵律 Prompt</label>
+        <label data-tooltip="控制说话风格：口语化、带笑声、播音腔等">韵律风格</label>
         <select id="p_prompt">
           <option value="[oral_0][laugh_0][break_3]">标准 (oral_0)</option>
           <option value="[oral_2][laugh_0][break_3]">口语化 (oral_2)</option>
@@ -342,11 +505,11 @@ async function renderParams(id) {
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>音色</label>
+          <label data-tooltip="微软在线语音，每个声音风格不同">音色选择</label>
           <select id="p_voice">${voices.map(v=>`<option value="${v.id}">${v.name}</option>`).join('')}</select>
         </div>
         <div class="form-group">
-          <label>语速</label>
+          <label data-tooltip="相对语速，从极慢到极快">语速</label>
           <select id="p_rate">
             <option value="-20%">极慢</option>
             <option value="-10%">慢</option>
@@ -360,11 +523,11 @@ async function renderParams(id) {
     html += `
       <div class="form-row">
         <div class="form-group">
-          <label>语速: <span class="range-val" id="rateVal">150</span></label>
+          <label data-tooltip="每分钟的字数，越大语速越快">语速 (字/分): <span class="range-val" id="rateVal">150</span></label>
           <input type="range" id="p_rate" min="80" max="300" step="10" value="150" oninput="document.getElementById('rateVal').textContent=this.value">
         </div>
         <div class="form-group">
-          <label>音量: <span class="range-val" id="volVal">0.9</span></label>
+          <label data-tooltip="扬声器音量，0=静音，1=最大">音量: <span class="range-val" id="volVal">0.9</span></label>
           <input type="range" id="p_volume" min="0" max="1" step="0.1" value="0.9" oninput="document.getElementById('volVal').textContent=this.value">
         </div>
       </div>`;
@@ -435,22 +598,46 @@ function collectParams(id) {
   return p;
 }
 
+// ===== File list management =====
 function showResult(name, data) {
   const card = document.getElementById('resultCard');
   card.style.display = 'block';
   const list = document.getElementById('audioList');
   const badge = data.time < 2 ? 'badge-fast' : 'badge-slow';
   const badgeText = data.time < 2 ? '极速' : '较慢';
-  list.innerHTML = `
-    <div class="audio-card">
-      <div class="info">
-        <div class="engine-name">${name}</div>
-        <div class="meta">${data.note || ''} · ${data.size_kb} KB</div>
-      </div>
-      <span class="badge ${badge}">${data.time}s · ${badgeText}</span>
-      <audio controls src="${data.audio_url}"></audio>
+  
+  // Insert new item at the top
+  const div = document.createElement('div');
+  div.className = 'audio-card';
+  div.innerHTML = `
+    <div class="info">
+      <div class="engine-name">${name}</div>
+      <div class="meta">${data.note || ''} · ${data.size_kb} KB</div>
     </div>
-  ` + list.innerHTML;
+    <span class="badge ${badge}">${data.time}s · ${badgeText}</span>
+    <audio controls src="${data.audio_url}"></audio>
+  `;
+  list.insertBefore(div, list.firstChild);
+  
+  // Enforce max limit
+  enforceDemoLimit();
+}
+
+function enforceDemoLimit() {
+  const list = document.getElementById('audioList');
+  const items = list.querySelectorAll('.audio-card');
+  if (items.length > MAX_DEMOS) {
+    for (let i = MAX_DEMOS; i < items.length; i++) {
+      items[i].remove();
+    }
+  }
+  document.getElementById('demoCount').textContent = `(${Math.min(items.length, MAX_DEMOS)})`;
+}
+
+function clearDemos() {
+  const list = document.getElementById('audioList');
+  list.innerHTML = '';
+  document.getElementById('demoCount').textContent = '(0)';
 }
 
 // ===== Batch =====
@@ -470,7 +657,6 @@ async function batchGenerate() {
   const checked = [...document.querySelectorAll('.batch-check:checked')].map(c => c.value);
   if (!checked.length) return toast('请至少选择一个引擎', 'err');
 
-  // Default params for each engine
   const defaults = {
     sherpa_vits: { speed: 1.0, noise_scale: 0.667, noise_scale_w: 0.8, length_scale: 1.0 },
     sherpa_kokoro: { speed: 1.0, sid: 3, length_scale: 1.0 },
