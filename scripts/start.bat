@@ -89,64 +89,58 @@ if not exist venv\Scripts\python.exe (
 echo.
 echo [Step 3/4] Checking dependencies...
 
-:: Activate venv and check if flask is importable
+:: Activate venv
 call venv\Scripts\activate.bat >nul 2>&1
 
-:: Write a temporary Python check script
-set "CHECK_SCRIPT=%TEMP%\tts_check.py"
-(
-    echo import sys
-    echo missing = []
-    echo for pkg in ['flask', 'sherpa_onnx', 'numpy', 'scipy']:
-    echo     try:
-    echo         __import__(pkg)
-    echo     except ImportError:
-    echo         missing.append(pkg)
-    echo if missing:
-    echo     print('MISSING:' + ','.join(missing))
-    echo     sys.exit(1)
-    echo else:
-    echo     print('OK')
-    echo     sys.exit(0)
-) > "%CHECK_SCRIPT%"
+:: Check each package individually and build install list
+set "MISSING_PKGS="
 
-python "%CHECK_SCRIPT%"
-set "CHECK_RESULT=!ERRORLEVEL!"
+python -c "import flask" 2>nul
+if !ERRORLEVEL! NEQ 0 set "MISSING_PKGS=!MISSING_PKGS! flask"
 
-if !CHECK_RESULT! NEQ 0 (
-    echo [REPAIR] Dependencies missing or broken. Reinstalling...
+python -c "import sherpa_onnx" 2>nul
+if !ERRORLEVEL! NEQ 0 set "MISSING_PKGS=!MISSING_PKGS! sherpa-onnx"
+
+python -c "import numpy" 2>nul
+if !ERRORLEVEL! NEQ 0 set "MISSING_PKGS=!MISSING_PKGS! numpy"
+
+python -c "import scipy" 2>nul
+if !ERRORLEVEL! NEQ 0 set "MISSING_PKGS=!MISSING_PKGS! scipy"
+
+if not "!MISSING_PKGS!"=="" (
+    echo [REPAIR] Missing packages:!MISSING_PKGS!
     echo.
     echo This may take 3-10 minutes depending on your network...
     echo.
     
-    :: Ensure pip is up to date first
+    :: Ensure pip is up to date
     python -m pip install --upgrade pip >nul 2>&1
     
-    :: Install from requirements.txt
+    :: Try batch install from requirements
     pip install -r requirements.txt
     if !ERRORLEVEL! NEQ 0 (
         echo.
-        echo [WARN] Batch install failed. Trying individual packages...
-        pip install flask numpy scipy sherpa-onnx edge-tts pyttsx3
+        echo [WARN] Batch install failed. Installing individually...
+        echo.
+        for %%p in (flask numpy scipy sherpa-onnx edge-tts pyttsx3) do (
+            pip install %%p 2>nul
+        )
     )
     
-    :: Re-check
-    python "%CHECK_SCRIPT%"
+    :: Final check - test the critical import
+    python -c "import flask; import sherpa_onnx; import numpy; import scipy; print('OK')" >nul 2>&1
     if !ERRORLEVEL! NEQ 0 (
         echo.
-        echo [ERROR] Dependency installation failed!
+        echo [ERROR] Dependency installation failed.
         echo Please check your internet connection and try again.
         echo.
         pause
         exit /b 1
     )
-    echo [OK] Dependencies installed successfully.
+    echo [OK] Dependencies installed.
 ) else (
     echo [OK] All dependencies verified.
 )
-
-:: Clean up temp file
-del "%CHECK_SCRIPT%" 2>nul
 
 :: ============================================================
 :: STEP 4: Verify Model Files
@@ -206,8 +200,8 @@ echo.
 set "PYTHON_URL=https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe"
 set "PYTHON_INSTALLER=%CD%\python-3.12.4-amd64.exe"
 
-powershell -Command "(New-Object Net.WebClient).DownloadFile('%PYTHON_URL%', '%PYTHON_INSTALLER%')"
-if not exist "%PYTHON_INSTALLER%" (
+powershell -Command "(New-Object Net.WebClient).DownloadFile('!PYTHON_URL!', '!PYTHON_INSTALLER!')"
+if not exist "!PYTHON_INSTALLER!" (
     echo [ERROR] Download failed! Please install manually:
     echo https://www.python.org/downloads/
     echo.
@@ -221,7 +215,7 @@ echo [2/3] Installing Python 3.12...
 echo     (Silent install, may take 1-2 minutes...)
 echo.
 
-"%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 TargetDir="%LOCALAPPDATA%\Programs\Python\Python312"
+"!PYTHON_INSTALLER!" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 TargetDir="%LOCALAPPDATA%\Programs\Python\Python312"
 if !ERRORLEVEL! NEQ 0 (
     echo [ERROR] Python installation failed!
     pause
